@@ -33,8 +33,8 @@ from physicsnemo.sym.domain.validator import GridValidator
 from physicsnemo.sym.dataset import DictGridDataset
 from physicsnemo.sym.utils.io.plotter import GridValidatorPlotter
 
-from utilities import download_FNO_dataset, load_FNO_dataset
-from ops import dx, ddx
+from utils.utilities import download_FNO_dataset, load_FNO_dataset
+from utils.ops import dx, ddx
 
 
 # [pde-loss]
@@ -117,8 +117,6 @@ class Darcy(torch.nn.Module):
             "darcy": dxf * darcy,
         }  # weight boundary loss higher
         return output_var
-
-
 # [pde-loss]
 
 
@@ -150,10 +148,10 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     )
 
     # add additional constraining values for darcy variable
-    outvar_train["darcy"] = np.zeros_like(outvar_train["sol"])
+    outvar_train["darcy"] = np.zeros_like(outvar_train["sol"]) # <=== we will check PDE vs 0 !
 
     train_dataset = DictGridDataset(invar_train, outvar_train)
-    test_dataset = DictGridDataset(invar_test, outvar_test)
+    test_dataset  = DictGridDataset(invar_test, outvar_test)
     # [datasets]
 
     # [init-model]
@@ -167,7 +165,12 @@ def run(cfg: PhysicsNeMoConfig) -> None:
         input_keys=[input_keys[0]],
         decoder_net=decoder_net,
     )
+    
     if cfg.custom.gradient_method == "exact":
+        # ======= Add PINO gradients =========== 
+        # look at 
+        # https://github.com/NVIDIA/physicsnemo-sym/blob/main/physicsnemo/sym/models/fno.py#L479 
+        # method "add_pino_gradients"
         derivatives = [
             Key("sol", derivatives=[Key("x")]),
             Key("sol", derivatives=[Key("y")]),
@@ -208,7 +211,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
 
     # add constraints to domain
     supervised = SupervisedGridConstraint(
-        nodes=nodes,
+        nodes=nodes, # <=== HERE we have the "Darcy Node", which is PDE[sol], which is compared to zero
         dataset=train_dataset,
         batch_size=cfg.batch_size.grid,
     )

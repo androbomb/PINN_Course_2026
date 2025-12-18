@@ -25,13 +25,13 @@ from physicsnemo.sym.domain.validator import GridValidator
 from physicsnemo.sym.dataset import DictGridDataset
 from physicsnemo.sym.utils.io.plotter import GridValidatorPlotter
 
-from utilities import download_FNO_dataset, load_FNO_dataset
+from utils.utilities import download_FNO_dataset, load_FNO_dataset
 
 
 @physicsnemo.sym.main(config_path="conf", config_name="config_FNO")
 def run(cfg: PhysicsNeMoConfig) -> None:
     # load training/ test data
-    input_keys = [Key("coeff", scale=(7.48360e00, 4.49996e00))]
+    input_keys  = [Key("coeff", scale=(7.48360e00, 4.49996e00))]
     output_keys = [Key("sol", scale=(5.74634e-03, 3.88433e-03))]
 
     download_FNO_dataset("Darcy_241", outdir="datasets/")
@@ -50,7 +50,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
 
     # make datasets
     train_dataset = DictGridDataset(invar_train, outvar_train)
-    test_dataset = DictGridDataset(invar_test, outvar_test)
+    test_dataset  = DictGridDataset(invar_test, outvar_test)
 
     # print out training/ test data shapes
     for d in (invar_train, outvar_train, invar_test, outvar_test):

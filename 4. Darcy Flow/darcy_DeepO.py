@@ -24,7 +24,7 @@ from physicsnemo.sym.domain.constraint.continuous import DeepONetConstraint
 from physicsnemo.sym.domain.validator import PointwiseValidator
 
 
-from utilities import download_FNO_dataset, load_deeponet_dataset
+from utils.utilities import download_FNO_dataset, load_deeponet_dataset
 
 
 @physicsnemo.sym.main(config_path="conf", config_name="config_DeepO")
