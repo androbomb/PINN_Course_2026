@@ -1,0 +1,24 @@
+bootstrap: docker
+from: pytorchlightning/pytorch_lightning
+stage: build
+
+%environment
+    export LC_ALL=C
+    export HYDRA_FULL_ERROR=1
+    export CUDA_LAUNCH_BLOCKING=1 
+    export LD_LIBRARY_PATH="{$LD_LIBRARY_PATH}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/.singularity.d/libs:/usr/local/lib/python3.12/dist-packages/nvidia/cudnn"
+
+%post
+    echo "Installing uv"
+    curl -LsSf https://astral.sh/uv/install.sh | \
+        UV_INSTALL_DIR=/usr/local/bin sh
+
+    echo "Installing system deps for OpenCV"
+    apt-get update
+    apt-get install -y libgl1 libglib2.0-0 libsm6 libxrender1 libxext6
+
+    echo "Installing Python packages"
+    uv pip install --system \
+        ipykernel ipywidgets plotly torchmetrics torchvision albumentations \
+        pyyaml einops h5py matplotlib pandas scipy torchsummary timm \
+        seaborn scikit-image scikit-learn opencv-python torch-fidelity
