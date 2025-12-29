@@ -16,7 +16,7 @@ apptainer build physicsnemo2506_container.sif physicsnemo2506.def
 ```
 And it can either be run interactively
 ```bash
-apptainer run barumini_gnn.sif
+apptainer run physicsnemo2506_container.sif
 ```
 or added as a kernel to Jupyter in your local space; to do so, we need to create the folder
 ```bash
