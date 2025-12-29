@@ -2,14 +2,15 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 import numpy as np
-import pytorch_lightning as pl
+#import pytorch_lightning as pl #old
+import lightning as L
 
 from .utils import exact_solution_func, R2_extraction
 from .pinn_dnn import PINN_DNN
 from .heat_pde import Heat1D_PDE
 from .heat_bc  import Heat1D_BC
 
-class HeatPINNLightning(pl.LightningModule):
+class HeatPINNLightning(L.LightningModule):
     """
     PINN for 1D Heat Equation using PyTorch Lightning.
     Full PINN Class for the FORWARD problem.
@@ -127,6 +128,7 @@ class HeatPINNLightning(pl.LightningModule):
         # PDE points
         if self.use_r2:
             coords = self.r2_extractor.r_d_extraction(self.pde_batch_size)
+            coords = coords.float()
             coords = coords.to(self.device)
             coords[:, 0] = self.t_min + (self.t_max - self.t_min) * coords[:, 0]
             coords[:, 0] = self.x_min + (self.x_max - self.x_min) * coords[:, 0]
@@ -157,7 +159,7 @@ class HeatPINNLightning(pl.LightningModule):
     # Loss components
     # -------------------------------------------------------------------------
     def compute_pde_loss(self, coords, pred):
-        heat_eq = self.pde.compute_heat(coords, pred)
+        heat_eq = self.pde.compute_pde(coords, pred)
         return self.mse(heat_eq, torch.zeros_like(heat_eq))
 
     def compute_ic_loss(self, ic_coords, pred_ic):

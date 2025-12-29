@@ -8,7 +8,7 @@ class Heat1D_PDE:
     def __init__(self, D: float = 0.5):
         self.D = D
 
-    def compute_heat(self, coords: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
+    def compute_pde(self, coords: torch.Tensor, u: torch.Tensor) -> torch.Tensor:
         """
         coords: (N, 2) tensor with columns [t, x]
         u:      (N, 1) predicted solution u(t,x)
