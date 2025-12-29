@@ -1,0 +1,36 @@
+defaults :
+  - physicsnemo_default
+  - arch:
+      - fully_connected
+  - scheduler: tf_exponential_lr
+  - optimizer: bfgs
+  - loss: relobralo
+  - _self_
+
+optimizer:
+    #defaukt; 1000
+    max_iter: 1000
+    #max_iter : 3000 
+    #lr: 2.e-4
+
+scheduler:
+  decay_rate: 0.95
+  decay_steps: 500
+
+training:
+  rec_validation_freq: 100
+  rec_inference_freq: 100
+  rec_monitor_freq: 100
+  rec_constraint_freq: 100
+  max_steps : 10000
+
+batch_size:
+  Interior: 4096
+  IC: 2048
+  BC: 2048
+
+graph:
+  func_arch: true
+  
+network_dir: "lbfgs_relobralo"
+initialization_network_dir: ""
