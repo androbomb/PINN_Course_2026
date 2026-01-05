@@ -1,0 +1,176 @@
+import os
+import warnings
+
+import pandas as pd
+import numpy as np
+import torch
+
+from sympy import Symbol, Eq, Abs, And, Or, Xor, Function, Number
+from sympy import atan2, pi, sin, cos
+
+import physicsnemo.sym
+from physicsnemo.sym.hydra import to_absolute_path, instantiate_arch, PhysicsNeMoConfig
+from physicsnemo.sym.solver import Solver
+from physicsnemo.sym.domain import Domain
+from physicsnemo.sym.geometry.primitives_1d import Line1D
+from physicsnemo.sym.geometry.primitives_2d import Rectangle, Circle
+from physicsnemo.sym.domain.constraint import (
+    PointwiseBoundaryConstraint,
+    PointwiseInteriorConstraint,
+)
+from physicsnemo.sym.domain.validator import PointwiseValidator
+from physicsnemo.sym.domain.inferencer import PointwiseInferencer
+from physicsnemo.sym.key import Key
+from physicsnemo.sym.utils.io import (
+    csv_to_dict,
+    ValidatorPlotter,
+    InferencerPlotter,
+)
+
+from physicsnemo.sym.models.fully_connected import FullyConnectedArch
+from physicsnemo.sym.models.activation import Activation
+
+from physicsnemo.sym.eq.pde import PDE
+
+class AllenCahn(PDE):
+    """
+    Allen - Cahn equation 1D
+        u_t + ρ u (u^2 - 1) - ν u_xx = 0
+
+    Parameters
+    ==========
+    ρ  : float, string
+        Reaction-Diffusion coeff
+    ν  : float, string
+        Diffusion coefficient. If a string then the
+        Diffusion  is input into the equation.
+    """
+
+    name = "AllenCahn"
+
+    def __init__(self, u: str = 'u', ν: float = 0.00001, ρ: float = 5.0):
+        # coordinates
+        x = Symbol("x")
+
+        # time
+        t = Symbol("t")
+
+        # make input variables
+        input_variables = {"x": x, "t": t}
+
+        # make u function
+        u = Function("u")(*input_variables)
+
+        # wave speed coefficient
+        if type(ν ) is str:
+            ν  = Function(ν)(*input_variables)
+        elif type(ν) in [float, int]:
+            ν  = Number(ν)
+            
+        if type(ρ) is str:
+            ρ = Function(ρ)(*input_variables)
+        elif type(ρ) in [float, int]:
+            ρ = Number(ρ)
+
+        # set equations
+        self.equations = {}
+        self.equations["allencahn"] = u.diff(t, 1) + ρ * u*(u**2 - 1) - (ν * u.diff(x)).diff(x)
+        
+def get_model():
+    flow_net = FullyConnectedArch(
+        input_keys = [Key("x"), Key("t")],
+        output_keys= [Key("u")],
+        # Arch Specs
+        layer_size = 512,
+        nr_layers = 4, 
+        skip_connections = True, 
+        adaptive_activations = False, 
+        activation_fn = Activation.SILU, 
+    )
+    
+    return flow_net
+
+@physicsnemo.sym.main(config_path="conf", config_name="config_ac")
+def run(cfg: PhysicsNeMoConfig) -> None:
+    # MACRO PARAMS
+    _ell = 1.0
+    _t_f = 1.0
+    # ====== PDE ===========================
+    # make list of nodes to unroll graph on
+    pde = AllenCahn(u="u",  ρ = 5.0, ν = 0.0001)
+
+    # ====== MODEL ===========================
+    flow_net = get_model()
+    # make nodes
+    nodes = pde.make_nodes() + [flow_net.make_node(name="flow_network")]
+    # ====== Geometry ===========================
+    # vars
+    x, t_symbol = Symbol("x"), Symbol("t")
+    time_range = {t_symbol: (0, _t_f)}
+    # geo
+    geo_1D = Line1D(point_1 = -_ell, point_2 = +_ell)
+    # ====== Domain ===========================
+    # make diamond domain
+    domain = Domain()   # <====== DOMAIN instance =======
+    # Interior
+    interior = PointwiseInteriorConstraint(
+        nodes=nodes,
+        geometry=geo_1D,
+        outvar={"allencahn": 0},
+        batch_size=cfg.batch_size.Interior,
+        lambda_weighting={
+            "allencahn": Symbol("sdf"),
+        },
+        parameterization = time_range,
+    )
+    domain.add_constraint(interior, "interior")
+    # BC
+    BC = PointwiseBoundaryConstraint(
+        nodes    = nodes,
+        geometry = geo_1D,
+        outvar   = {"u": 0},
+        batch_size=cfg.batch_size.BC,
+        parameterization = time_range,
+    )
+    domain.add_constraint(BC, "BC")
+    # initial condition
+    IC = PointwiseInteriorConstraint(
+        nodes=nodes,
+        geometry=geo_1D,
+        outvar={"u": cos(pi*x/2)},
+        batch_size=cfg.batch_size.IC,
+        lambda_weighting={"u": 1.0},
+        parameterization={t_symbol: 0.0},
+    )
+    domain.add_constraint(IC, "IC")    
+    
+    # ====== inferencer ===========================
+    # add inferencer data
+    deltaT = 0.01
+    deltaX = 0.01
+    x = np.arange(-_ell, +_ell, deltaX)
+    t = np.arange(0, _t_f, deltaT)
+    X, T = np.meshgrid(x, t)
+    X = np.expand_dims(X.flatten(), axis=-1)
+    T = np.expand_dims(T.flatten(), axis=-1)
+    invar_numpy  = {"x": X, "t": T}
+    
+    grid_inference = PointwiseInferencer(
+        nodes = nodes,
+        invar = invar_numpy,
+        output_names = ["u"],
+        batch_size = 1024,
+        plotter    = InferencerPlotter(),
+    )
+    domain.add_inferencer(grid_inference, "inf_data")
+    
+    # ====== Solver ===========================
+    # make solver
+    slv = Solver(cfg, domain)
+
+    # start solver
+    slv.solve()
+    
+    
+if __name__ == "__main__":
+    run()
