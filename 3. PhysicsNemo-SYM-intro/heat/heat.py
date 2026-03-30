@@ -44,28 +44,21 @@ class Diffusion(PDE):
         Diffusion coefficient. If a string then the
         Diffusion  is input into the equation.
     """
-
     name = "Diffusion"
-
     def __init__(self, u: str = 'u', D: float = 0.5):
         # coordinates
         x = Symbol("x")
-
         # time
         t = Symbol("t")
-
         # make input variables
         input_variables = {"x": x, "t": t}
-
         # make u function
         u = Function("u")(*input_variables)
-
         # wave speed coefficient
         if type(D) is str:
             D = Function(D)(*input_variables)
         elif type(D) in [float, int]:
             D = Number(D)
-
         # set equations
         self.equations = {}
         self.equations["diffusion"] = u.diff(t, 1) - (D**2 * u.diff(x)).diff(x)
