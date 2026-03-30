@@ -6,8 +6,8 @@
 We will simply try to solve the 1+1D continuity equation, to see the weird behaviour in vanilla PINNs, as described in [1], §6.1.
 
 \begin{align}
-\partial_t u + \beta \partial_x u &= 0 \,, \quad (t,x) \in [0,1] \times [0, 2\pi] \\
-u(0, x) &= \sin x .
+\partial_t u + \beta \partial_x u &= 0 \,, \quad (t,x) \in [0,1] \times [-1, +1] \\
+u(0, x) &= - \sin \frac\pi x .
 \end{align}
 
 ### Allen-Cahan Equation
@@ -39,4 +39,4 @@ We will see how to use different optimisers in `PhysicsNeMo`, simply by changing
 
 #### References
 
-[1] https://www.sciencedirect.com/science/article/pii/S2590123023001500?via%3Dihub#se0130
+[1] Simone Monaco, Daniele Apiletti, Training physics-informed neural networks: One learning to rule them all?, Results in Engineering, Volume 18, 2023, https://www.sciencedirect.com/science/article/pii/S2590123023001500?via%3Dihub#se0130
