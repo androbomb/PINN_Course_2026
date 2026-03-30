@@ -1,6 +1,8 @@
 import os
 import warnings
 
+from typing import Optional, Dict, Tuple, Union, List
+
 import pandas as pd
 import numpy as np
 import torch
@@ -31,9 +33,16 @@ from physicsnemo.sym.utils.io import (
 )
 
 from physicsnemo.sym.models.fully_connected import FullyConnectedArch
-from physicsnemo.sym.models.layers import Activation
+from physicsnemo.sym.models.fourier_net import FourierNetArch
+from physicsnemo.sym.models.siren import SirenArch
+from physicsnemo.sym.models.modified_fourier_net import ModifiedFourierNetArch
+from physicsnemo.sym.models.dgm import DGMArch
+from physicsnemo.sym.models.activation import Activation
 
 from physicsnemo.sym.eq.pde import PDE
+
+import logging
+logger = logging.getLogger(__name__)
 
 class Continuity(PDE):
     """
@@ -74,26 +83,85 @@ class Continuity(PDE):
         self.equations = {}
         self.equations["continuity"] = u.diff(t, 1) + β * u.diff(x)
 
-def get_model():
-    flow_net = KANArch(
-        input_keys = [Key("x"), Key("t")],
-        output_keys= [Key("u")],
-        # KAN Arch Specs
-        layers_hidden = [2,2], 
-        grid_size     = 5, 
-        spline_order  = 3, 
-        grid_eps    = 1.0, 
-        scale_noise = 0.25 ,
-    )
+def get_model(
+    input_keys  = [Key("x"), Key("t")],
+    output_keys = [Key("u")],
+    model_type: str = 'FullyConnectedArch' ,
+    # Arch Specs
+    layer_size = 512,
+    nr_layers  = 4, 
+    skip_connections     = True, 
+    adaptive_activations = False, 
+    activation_fn = Activation.SILU, 
+    periodicity: Union[Dict[str, Tuple[float, float]], None] = None,
+    # Fourier arch
+    detach_keys: List[Key] = [], # default physicsnemo
+    frequencies        = ("axis", [i for i in range(10)]), # default physicsnemo
+    frequencies_params = ("axis", [i for i in range(10)]), # default physicsnemo
+):
+    if model_type == "FourierNetArch":
+        flow_net = FourierNetArch(
+            input_keys  = input_keys,  
+            output_keys = output_keys,
+            # Arch Specs
+            layer_size = layer_size,
+            nr_layers  = nr_layers, 
+            skip_connections     = skip_connections, 
+            adaptive_activations = adaptive_activations, 
+            activation_fn = activation_fn, 
+            # 
+            frequencies        = frequencies ,  
+            frequencies_params = frequencies_params ,
+            detach_keys = detach_keys , 
+        )
+    elif model_type == "ModifiedFourierNetArch":
+        flow_net = ModifiedFourierNetArch(
+            input_keys  = input_keys,  
+            output_keys = output_keys,
+            # Arch Specs
+            layer_size = layer_size,
+            nr_layers  = nr_layers, 
+            skip_connections     = skip_connections, 
+            adaptive_activations = adaptive_activations, 
+            activation_fn = activation_fn, 
+            # 
+            frequencies        = frequencies ,  
+            frequencies_params = frequencies_params ,
+            detach_keys = detach_keys , 
+        )
+    elif model_type == "SirenArch":
+        flow_net = SirenArch(
+            input_keys  = input_keys,
+            output_keys = output_keys,
+            # Arch Specs
+            layer_size = layer_size,
+            nr_layers = nr_layers, 
+            detach_keys = detach_keys , 
+        )
+    else:
+        flow_net = FullyConnectedArch(
+            input_keys  = input_keys ,
+            output_keys = output_keys ,
+            # Arch Specs
+            layer_size = layer_size,
+            nr_layers  = nr_layers, 
+            skip_connections     = skip_connections, 
+            adaptive_activations = adaptive_activations, 
+            activation_fn = activation_fn, 
+            periodicity   = periodicity, 
+        )
     
     return flow_net
 
 @physicsnemo.sym.main(config_path="conf", config_name="config_cont")
 def run(cfg: PhysicsNeMoConfig) -> None:
+    # retrieve logger
+    logger = logging.getLogger(__name__)
     # MACRO PARAMS
-    _ell = 1.0
-    β = 1.0 / np.pi
+    _ell = 1. #
+    β    = cfg.custom.beta / 2*np.pi
     _t_f = 1.0
+    logger.info(f'==> Solving continuity equation with β={β} <==')
     # ====== PDE ===========================
     # make list of nodes to unroll graph on
     pde = Continuity(u="u",  β = β )
@@ -109,7 +177,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     x, t_symbol = Symbol("x"), Symbol("t")
     time_range = {t_symbol: (0, _t_f)}
     # geo
-    geo_1D = Line1D(point_1 = -_ell, point_2 = +_ell)
+    geo_1D = Line1D(point_1 = - _ell, point_2 = + _ell)
     # ====== Domain ===========================
     # make diamond domain
     domain = Domain()   # <====== DOMAIN instance =======
@@ -138,7 +206,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     IC = PointwiseInteriorConstraint(
         nodes = nodes,
         geometry = geo_1D,
-        outvar = {"u": - sin(pi*x)},
+        outvar = {"u": - sin(pi*x)},    # < ==== IC ======
         batch_size = cfg.batch_size.IC,
         lambda_weighting = {"u": 1.0},
         parameterization = {t_symbol: 0.0},
