@@ -7,3 +7,4 @@ datasets/
 dataset/
 logs/
 lightning_logs/
+*outputs/

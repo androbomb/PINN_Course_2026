@@ -11,30 +11,26 @@ class PINN_DNN(nn.Module):
     """
     def __init__(
         self,
-        n_inputs: int,
+        n_inputs : int,
         n_outputs: int,
         hidden_dims: list,
-        activation_func=None,   # user may pass nn.Tanh, nn.ReLU, nn.SiLU, etc.
-        use_bias: bool = True,
+        activation_func = None,   # user may pass nn.Tanh, nn.ReLU, nn.SiLU, etc.
+        use_bias: bool  = True,
     ):
         super().__init__()
-
         # -----------------------------
         # 1. Activation selection logic
         # -----------------------------
         if activation_func is None:
             # Default fallback
             activation_func = nn.Tanh
-
         # If user passed an *instance*, convert to class
         if isinstance(activation_func, nn.Module):
             activation_cls = activation_func.__class__
         else:
             activation_cls = activation_func
-
         # Normalize name for detection
         act_name = activation_cls.__name__.lower()
-
         # -----------------------------
         # 2. Select initialization mode
         # -----------------------------
@@ -46,23 +42,18 @@ class PINN_DNN(nn.Module):
             # Fallback to Tanh + Xavier
             activation_cls = nn.Tanh
             self.init_mode = "xavier"
-
         self.activation_cls = activation_cls
-
         # -----------------------------
         # 3. Build the network
         # -----------------------------
         layers = []
         dims = [n_inputs] + hidden_dims + [n_outputs]
-
         for i in range(len(dims) - 2):
             layers.append(nn.Linear(dims[i], dims[i+1], bias=use_bias))
             layers.append(self.activation_cls())
-
         # Output layer
         layers.append(nn.Linear(dims[-2], dims[-1], bias=True))
         self.network = nn.Sequential(*layers)
-
         # -----------------------------
         # 4. Initialize parameters
         # -----------------------------
