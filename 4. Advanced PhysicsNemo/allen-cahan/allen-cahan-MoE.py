@@ -326,7 +326,11 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     # Lambda weighting
     C_T = 15.0
     lambda_t = C_T * (1 - t_symbol/_t_f) + 1
-    
+
+    # Initial condition
+    ic_dict = {
+        "u": (x**2) * cos(pi*x/2)
+    }
     # ====== Domain ===========================
     # make diamond domain
     domain = Domain()   # <====== DOMAIN instance =======
@@ -349,7 +353,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     IC = PointwiseInteriorConstraint(
         nodes=nodes,
         geometry=geo_1D,
-        outvar={"u": (x**2) * cos(pi*x)},
+        outvar=ic_dict,
         batch_size=cfg.batch_size.IC,
         lambda_weighting={"u": 10.0},
         parameterization={t_symbol: 0.0},

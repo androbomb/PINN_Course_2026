@@ -109,6 +109,10 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     time_range = {t_symbol: (0, _t_f)}
     # geo
     geo_1D = Line1D(point_1 = -_ell, point_2 = +_ell)
+    # Initial condition
+    ic_dict = {
+        "u": (x**2) * cos(pi*x/2)
+    }
     # ====== Domain ===========================
     # make diamond domain
     domain = Domain()   # <====== DOMAIN instance =======
@@ -137,7 +141,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     IC = PointwiseInteriorConstraint(
         nodes=nodes,
         geometry=geo_1D,
-        outvar={"u": cos(pi*x/2)},
+        outvar = ic_dict,  
         batch_size=cfg.batch_size.IC,
         lambda_weighting={"u": 1.0},
         parameterization={t_symbol: 0.0},
