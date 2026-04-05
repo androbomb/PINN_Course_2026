@@ -63,22 +63,17 @@ class Continuity(PDE):
     def __init__(self, u: str = 'u', β: float = 1.0):
         # coordinates
         x = Symbol("x")
-
         # time
         t = Symbol("t")
-
         # make input variables
         input_variables = {"x": x, "t": t}
-
         # make u function
         u = Function("u")(*input_variables)
-
         # wave speed coefficient
         if type(β) is str:
             β = Function(β)(*input_variables)
         elif type(β) in [float, int]:
             β = Number(β)
-
         # set equations
         self.equations = {}
         self.equations["continuity"] = u.diff(t, 1) + β * u.diff(x)
@@ -159,15 +154,16 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     logger = logging.getLogger(__name__)
     # MACRO PARAMS
     _ell = 1. #
-    β    = cfg.custom.beta / 2*np.pi
+    β    = cfg.custom.beta / (2*np.pi)
     _t_f = 1.0
     logger.info(f'==> Solving continuity equation with β={β} <==')
+    logger.info(f"\n\nConfigs:\n{cfg}\n")
     # ====== PDE ===========================
     # make list of nodes to unroll graph on
     pde = Continuity(u="u",  β = β )
 
     # ====== MODEL ===========================
-    flow_net = get_model()
+    flow_net = get_model(model_type = cfg.custom.model_type)
     #flow_net_mlp = get_model_mlp()
     # make nodes
     nodes  = pde.make_nodes() 
