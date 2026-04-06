@@ -13,8 +13,11 @@ We will simply try to solve the 1+1D continuity equation, to see the weird behav
 
 \begin{align}
 \partial_t u + \beta \partial_x u &= 0 \,, \quad (t,x) \in [0,1] \times [-1, +1] \\
-u(0, x) &= - \sin \frac\pi x .
+u(0, x) &= - \sin \frac\pi x  \,,\\
+u(t, x=+1) &= u(t, x=-1).
 \end{align}
+
+Notice that, w.r.t. the conventions used in the paper, we adimensionalised the problem via the change of variable $x\to (x - \pi)/(2\pi)$, and the redefinition $\beta \to \beta /(2\pi)$. 
 
 ### Allen-Cahan Equation
 
@@ -24,7 +27,8 @@ $$ \partial_t u + \rho u (u^2 - 1) - \nu \partial_x^2 u = 0 $$
 we will try to solve
 \begin{align}
 \partial_t u + \rho u (u^2 - 1) - \nu \partial_x^2 u &= 0 \,, \quad (t,x) \in [0,1] \times [-1, +1] \\
-u(0, x) &= x^2 \cos (\pi x) .
+u(0, x) &= x^2 \cos (\pi x) \\,
+u(t, x=+1) &= u(t, x=-1). 
 \end{align}
 with $\nu=0.0001$ and $\rho = 5$.
 

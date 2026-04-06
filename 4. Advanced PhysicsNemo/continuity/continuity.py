@@ -88,6 +88,7 @@ def get_model(
     skip_connections     = True, 
     adaptive_activations = False, 
     activation_fn = Activation.SILU, 
+    # periodicity
     periodicity: Union[Dict[str, Tuple[float, float]], None] = None,
     # Fourier arch
     detach_keys: List[Key] = [], # default physicsnemo
@@ -108,6 +109,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "ModifiedFourierNetArch":
         flow_net = ModifiedFourierNetArch(
@@ -123,6 +126,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "SirenArch":
         flow_net = SirenArch(
@@ -132,6 +137,8 @@ def get_model(
             layer_size = layer_size,
             nr_layers = nr_layers, 
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     else:
         flow_net = FullyConnectedArch(
@@ -143,7 +150,8 @@ def get_model(
             skip_connections     = skip_connections, 
             adaptive_activations = adaptive_activations, 
             activation_fn = activation_fn, 
-            periodicity   = periodicity, 
+            #
+            periodicity = periodicity, 
         )
     
     return flow_net
@@ -156,6 +164,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     _ell = 1. #
     β    = cfg.custom.beta / (2*np.pi)
     _t_f = 1.0
+    _periodicity = {"x": (-_ell, +_ell)} # <===
     logger.info(f'==> Solving continuity equation with β={β} <==')
     logger.info(f"\n\nConfigs:\n{cfg}\n")
     # ====== PDE ===========================
@@ -163,7 +172,10 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     pde = Continuity(u="u",  β = β )
 
     # ====== MODEL ===========================
-    flow_net = get_model(model_type = cfg.custom.model_type)
+    flow_net = get_model(
+        model_type = cfg.custom.model_type,
+        periodicity = _periodicity
+    )
     #flow_net_mlp = get_model_mlp()
     # make nodes
     nodes  = pde.make_nodes() 
@@ -189,15 +201,8 @@ def run(cfg: PhysicsNeMoConfig) -> None:
         parameterization = time_range,
     )
     domain.add_constraint(interior, "interior")
-    # BC
-    BC = PointwiseBoundaryConstraint(
-        nodes    = nodes,
-        geometry = geo_1D,
-        outvar   = {"u": 0},
-        batch_size = cfg.batch_size.BC,
-        parameterization = time_range,
-    )
-    domain.add_constraint(BC, "BC")
+    # BC 
+    # there are no BC because we have set up periodic BC in the Model definition
     # initial condition
     IC = PointwiseInteriorConstraint(
         nodes = nodes,
