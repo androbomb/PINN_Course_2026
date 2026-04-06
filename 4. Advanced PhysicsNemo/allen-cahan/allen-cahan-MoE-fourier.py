@@ -131,6 +131,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "ModifiedFourierNetArch":
         flow_net = ModifiedFourierNetArch(
@@ -146,6 +148,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "SirenArch":
         flow_net = SirenArch(
@@ -154,7 +158,9 @@ def get_model(
             # Arch Specs
             layer_size = layer_size,
             nr_layers = nr_layers, 
-            detach_keys = detach_keys , 
+            detach_keys = detach_keys ,
+            # 
+            periodicity = periodicity, 
         )
     else:
         flow_net = FullyConnectedArch(
@@ -414,6 +420,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
             skip_connections     = True, 
             adaptive_activations = True, 
             activation_fn = Activation.SILU,
+            periodicity   = _periodicity,      
         ),
         # Expert 7
         get_model(
@@ -426,6 +433,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
             skip_connections     = True, 
             adaptive_activations = True, 
             activation_fn = Activation.SIN,
+            periodicity   = _periodicity,      
         ),
         # Expert 8
         get_model(
@@ -435,6 +443,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
             model_type = "SirenArch", 
             layer_size = 64,
             nr_layers  = 3, 
+            periodicity   = _periodicity,      
         )
     ]
     N_experts = len(experts)

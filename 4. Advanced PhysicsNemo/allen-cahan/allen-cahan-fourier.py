@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import Union, List, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union, List
 
 import pandas as pd
 import numpy as np
@@ -91,6 +91,7 @@ def get_model(
     skip_connections     = True, 
     adaptive_activations = False, 
     activation_fn = Activation.SILU, 
+    # periodicity
     periodicity: Union[Dict[str, Tuple[float, float]], None] = None,
     # Fourier arch
     detach_keys: List[Key] = [], # default physicsnemo
@@ -111,6 +112,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "ModifiedFourierNetArch":
         flow_net = ModifiedFourierNetArch(
@@ -126,6 +129,8 @@ def get_model(
             frequencies        = frequencies ,  
             frequencies_params = frequencies_params ,
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     elif model_type == "SirenArch":
         flow_net = SirenArch(
@@ -135,6 +140,8 @@ def get_model(
             layer_size = layer_size,
             nr_layers = nr_layers, 
             detach_keys = detach_keys , 
+            #
+            periodicity = periodicity, 
         )
     else:
         flow_net = FullyConnectedArch(
@@ -146,6 +153,7 @@ def get_model(
             skip_connections     = skip_connections, 
             adaptive_activations = adaptive_activations, 
             activation_fn = activation_fn, 
+            #
             periodicity   = periodicity, 
         )
     
@@ -156,6 +164,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     # MACRO PARAMS
     _ell = 1.0
     _t_f = 1.0
+    _periodicity = {"x": (-_ell, +_ell)} # <===
     # ====== PDE ===========================
     # make list of nodes to unroll graph on
     pde = AllenCahn(u="u",  ρ = 5.0, ν = 0.0001)
@@ -164,6 +173,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     flow_net = get_model(
         model_type = "ModifiedFourierNetArch" , 
         adaptive_activations = True, 
+        periodicity = _periodicity,
     )
     # make nodes
     nodes = pde.make_nodes() + [flow_net.make_node(name="flow_network")]

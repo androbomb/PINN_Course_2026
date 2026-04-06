@@ -1,6 +1,8 @@
 import os
 import warnings
 
+from typing import Optional, Dict, Tuple, Union, List
+
 import pandas as pd
 import numpy as np
 import torch
@@ -81,7 +83,9 @@ class AllenCahn(PDE):
         self.equations = {}
         self.equations["allencahn"] = u.diff(t, 1) + ρ * u*(u**2 - 1) - (ν * u.diff(x)).diff(x)
         
-def get_model():
+def get_model(
+    periodicity: Union[Dict[str, Tuple[float, float]], None] = None,
+):
     flow_net = FullyConnectedArch(
         input_keys = [Key("x"), Key("t")],
         output_keys= [Key("u")],
@@ -91,6 +95,8 @@ def get_model():
         skip_connections = True, 
         adaptive_activations = False, 
         activation_fn = Activation.SILU, 
+        #
+        periodicity = periodicity, 
     )
     
     return flow_net
@@ -100,12 +106,13 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     # MACRO PARAMS
     _ell = 1.0
     _t_f = 1.0
+    _periodicity = {"x": (-_ell, +_ell)} # <===
     # ====== PDE ===========================
     # make list of nodes to unroll graph on
     pde = AllenCahn(u="u",  ρ = 5.0, ν = 0.0001)
 
     # ====== MODEL ===========================
-    flow_net = get_model()
+    flow_net = get_model(periodicity = _periodicity)
     # make nodes
     nodes = pde.make_nodes() + [flow_net.make_node(name="flow_network")]
     # ====== Geometry ===========================
@@ -144,14 +151,7 @@ def run(cfg: PhysicsNeMoConfig) -> None:
     )
     domain.add_constraint(interior, "interior")
     # BC
-    BC = PointwiseBoundaryConstraint(
-        nodes    = nodes,
-        geometry = geo_1D,
-        outvar   = {"u": 0},
-        batch_size=cfg.batch_size.BC,
-        parameterization = time_range,
-    )
-    domain.add_constraint(BC, "BC")
+    # there are no BC because we have set up periodic BC in the Model definition
     # initial condition
     IC = PointwiseInteriorConstraint(
         nodes=nodes,
