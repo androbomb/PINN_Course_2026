@@ -13,11 +13,27 @@ We will simply try to solve the 1+1D continuity equation, to see the weird behav
 
 \begin{align}
 \partial_t u + \beta \partial_x u &= 0 \,, \quad (t,x) \in [0,1] \times [-1, +1] \\
-u(0, x) &= - \sin \frac\pi x  \,,\\
+u(0, x) &= - \sin \pi x  \,,\\
 u(t, x=+1) &= u(t, x=-1).
 \end{align}
 
 Notice that, w.r.t. the conventions used in the paper, we adimensionalised the problem via the change of variable $x\to (x - \pi)/(2\pi)$, and the redefinition $\beta \to \beta /(2\pi)$. 
+
+The key point that is that this PDE is easily solvable _analytically_, using the method of characteristics; simply selecting a solution in the form of $u(t,x)=f(x - \beta t)$, which trivially solves the PDE, gives us the solution simply requiring to satisfy both IC and BC;
+$$
+(\mathrm{IC}) \Rightarrow f(x) = - \sin \pi x  \Rightarrow u(t,x) = \sin \pi (\beta t  - x ) \,,
+$$
+which, indeed, on the BC
+$$
+ u(t, x=\pm 1) =  \sin  (\pi\beta t  \mp \pi) = - \sin \pi \beta t \Rightarrow u(t, x=+1) = u(t, x=-1) \quad \mathrm{q.e.d.}.
+$$
+
+Finally, notice the expression for the solution can be recast, using that $\sin(a+b) = \sin a \cos b + \cos a \sin b$, as
+$$
+u(t,x) = \sin (\pi \beta t ) \cos (\pi x) - \cos (\pi \beta t) \sin (\pi x) \,.
+$$
+This form immediately highlights _why_ high $\beta$ cases may be difficult for PINNs: high $\beta$ means _high frequency modes_ in the solution has to be regressed.   
+This is an evident _spectral bias_ problem.
 
 ### Allen-Cahan Equation
 
