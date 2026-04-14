@@ -53,6 +53,44 @@ Notice that we added in the env section the `LD_LIBRARY_PATH` env var, adding to
 
 ### Using Conda
 
+It is kinda difficult to get the installation with conda right. 
+
+We need
+```bash
+# 1. Create env and add torch
+# Create a new environment (Python 3.10 is a safe, compatible choice)
+conda create -n physicsnemo_env python=3.10 -y
+# Activate the environment
+conda activate physicsnemo_env
+# Install cuda toolkit (e.g., 12.6)
+conda install -c nvidia cuda-toolkit=12.6 -y
+# Install PyTorch with a compatible CUDA version 
+# but from pip since torch does not longer supports conda
+# please notice the index url pointing to cu126 as above
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+# [Optional] Check that nvcc is from Conda and is version 12.6
+nvcc --version
+# [Optional] check torch install 
+python -c "import torch; print('CUDA Available:', torch.cuda.is_available()); print('CUDA Version:', torch.version.cuda)"
+
+# 2. Install PhysicsNeMo
+# install physicsnemo
+pip install nvidia-physicsnemo
+# Install dependencies for the symbolic part
+pip install Cython
+# Install PhysicsNeMo-Sym with build isolation disabled
+pip install nvidia-physicsnemo-sym --no-build-isolation
+
+# 3. [Optional] Create kernel
+# Install ipykernel in the current environment
+pip install ipykernel -y
+# Register the kernel with Jupyter
+python -m ipykernel install --user --name physicsnemo_env --display-name "PhysicsNeMo (conda)"
+
+# 4. [Optional] Final checks
+python -c "import physicsnemo; import physicsnemo.sym; print(physicsnemo.__version__); print(physicsnemo.sym.__version__)"
+```
+
 ## Lectures
 
 The course will be divided in _frontal lectures_ and _hands on lectures_; this repository contains the code for the hands on sessions. 
